@@ -1,6 +1,6 @@
 # ☕ Real-World Java Design Patterns
 
-> Practical, production-grade implementations of classic **Gang of Four (GoF)** design patterns in modern Java and Spring Boot.
+> Practical, production-grade implementations of classic **Gang of Four (GoF)** and enterprise design patterns in modern Java and Spring Boot.
 
 Instead of textbook toy examples (like shapes or animals), this repository demonstrates design patterns solving **realistic, enterprise-level problems** — such as legacy REST API integration, thread-safe configuration management, and dynamic decoupled business logic.
 
@@ -10,87 +10,188 @@ Instead of textbook toy examples (like shapes or animals), this repository demon
 
 | Pattern | Category | Description | Real-World Scenario |
 | :--- | :--- | :--- | :--- |
-| **[Singleton Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/singleton-pattern/src/AppConfig.java)** | Creational | Guarantees a class has only one instance and provides a global access point to it. | Thread-safe, lazy-initialized application configuration (`AppConfig`) using double-checked locking and environment variables. |
-| **[Adapter Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/README.md)** | Structural | Converts an incompatible interface into an interface clients expect without modifying existing code. | Adapts an external Legacy Banking REST API (`POST /api/transactions`) to an internal checkout `PaymentProcessor` interface. |
-| **[Strategy Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/ShippingStrategy.java)** | Behavioral | Defines a family of interchangeable algorithms and lets them vary independently from clients. | Dynamic shipping cost calculator (`Order` context swapping between `Standard`, `Express`, `International`, and `NextDay` at runtime). |
+| **[Singleton Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/singleton-pattern/src/AppConfig.java)** | Creational | Guarantees a class has only one instance and provides a global access point to it. | Thread-safe, lazy-initialized application configuration (`AppConfig`) using double-checked locking, reflection defense, and environment variables. |
+| **[Adapter Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/LegacyBankAdapter.java)** | Structural | Converts an incompatible interface into an interface clients expect without modifying existing code. | Adapts an external Legacy Banking Spring Boot REST API (`POST /api/transactions`) to an internal checkout `PaymentProcessor` interface. |
+| **[Strategy Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/strategy/ShippingStrategy.java)** | Behavioral | Defines a family of interchangeable algorithms and lets them vary independently from clients. | Dynamic shipping cost calculator (`Order` context swapping between `Standard`, `Express`, `International`, and `NextDay` at runtime). |
+| **[Simple Factory Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/src/factory/ShippingStrategyFactory.java)** | Creational | Centralizes object creation in a dedicated class, shielding clients from concrete implementations. | Decouples order checkout from concrete strategy instantiation via `ShippingStrategyFactory.createStrategy(...)`. |
 
 ---
 
-## 🛠️ Pattern Spotlights
+## 🛠️ Deep-Dive Pattern Spotlights
 
-### 1. Strategy Pattern (`strategy-pattern`)
-* **Problem**: An e-commerce `Order` must calculate shipping costs based on different pricing models (flat rate, courier weight limits, cross-border customs, priority overnight). Embedding this logic inside `Order` with `if/else` would violate the Single Responsibility and Open/Closed principles.
-* **Solution**: An `Order` context holds a reference to a `ShippingStrategy` interface and delegates calculation via `shippingStrategy.calculate(this)`. New shipping rules are added as new classes without modifying `Order`.
-* **Classes**:
-  * [`ShippingStrategy`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/ShippingStrategy.java) (Strategy Interface)
-  * [`StandardShipping`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/StandardShipping.java) (Flat fee + Free shipping threshold)
-  * [`ExpressShipping`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/ExpressShipping.java) (Base fee + Overweight surcharge)
-  * [`InternationalShipping`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/InternationalShipping.java) (Customs base fee + Per-kg air freight)
-  * [`NextDayShipping`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/NextDayShipping.java) (Priority overnight + Transit insurance)
-  * [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/Order.java) (Context)
+### 1. Singleton Pattern (`singleton-pattern`)
 
+#### Problem
+An application configuration manager (`AppConfig`) must be instantiated exactly once across the JVM, load environment variables lazily on first access, and remain completely thread-safe under heavy concurrent access without degrading performance with synchronized method locks.
+
+#### Solution
+* **Double-Checked Locking**: The instance is checked twice. The synchronization block is only entered on the first call, eliminating thread contention on subsequent calls.
+* **`volatile` Modifier**: Prevents CPU instruction reordering, ensuring that other threads never observe a partially initialized object.
+* **Reflection Protection**: The private constructor verifies that `instance == null`, throwing `IllegalStateException` if reflection attempts to construct a second instance.
+
+#### Project Layout
+```text
+singleton-pattern/src/
+├── AppConfig.java        <-- Thread-safe singleton with double-checked locking
+└── Main.java             <-- Verifies single instance identity (a == b)
 ```
+
+#### How to Run
+```bash
+cd singleton-pattern
+javac src/*.java
+java -cp src Main
+```
+
+---
+
+### 2. Adapter Pattern (`adapter-pattern`)
+
+#### Problem
+An e-commerce checkout service expects a clean domain interface: `PaymentProcessor.pay(orderId, amount)`. However, the bank service is an external Legacy REST API requiring HTTP POST requests, JSON serialization, merchant account numbers (`accountRef`), and ISO currency codes (`USD`), returning HTTP 201 Created or 400 Bad Request.
+
+#### Solution (Object Adapter)
+[`LegacyBankAdapter`](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/LegacyBankAdapter.java) implements [`PaymentProcessor`](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/PaymentProcessor.java), encapsulates the HTTP client, handles parameter translation, normalizes endpoints, and translates HTTP status codes and network failures into domain `PaymentException`s.
+
+```text
+[CheckoutService] ---> [PaymentProcessor] <|--- [LegacyBankAdapter] ---> (HTTP POST) ---> [LegacyBank REST API]
+```
+
+#### Components
+* **Target Interface**: [`PaymentProcessor`](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/PaymentProcessor.java) (`void pay(String orderId, BigDecimal amount)`)
+* **Client**: [`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/CheckoutService.java)
+* **Adaptee**: Spring Boot microservice [`BankController`](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/LegacyBank/src/main/java/com/example/legacybank/controller/BankController.java) (`POST /api/transactions`)
+* **Adapter**: [`LegacyBankAdapter`](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/LegacyBankAdapter.java)
+
+#### Project Layout
+```text
+adapter-pattern/
+├── LegacyBank/                     <-- Spring Boot banking microservice (Adaptee)
+│   ├── src/main/java/com/example/legacybank/
+│   │   ├── controller/BankController.java
+│   │   ├── dto/request/TransactionRequest.java
+│   │   └── exception/GlobalExceptionHandler.java
+│   └── src/test/java/...           <-- MockMvc integration tests
+└── PaymentSystem/                  <-- Client domain & Adapter
+    └── src/
+        ├── CheckoutService.java    <-- Client
+        ├── PaymentProcessor.java   <-- Target interface
+        ├── LegacyBankAdapter.java  <-- Adapter
+        ├── PaymentException.java   <-- Domain exception
+        └── Main.java               <-- Client demo
+```
+
+#### How to Run
+```bash
+# Terminal 1: Start Legacy Bank microservice
+cd adapter-pattern/LegacyBank
+./mvnw spring-boot:run
+
+# Terminal 2: Run Payment System checkout
+cd adapter-pattern
+javac PaymentSystem/src/*.java
+java -cp PaymentSystem/src Main
+```
+
+---
+
+### 3. Strategy Pattern (`strategy-pattern`)
+
+#### Problem
+An e-commerce [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/Order.java) needs to calculate shipping costs based on varying commercial rules (flat rate, courier weight limits, international customs, priority overnight). Embedding this logic inside `Order` with `if/else` chains violates both the **Single Responsibility Principle** and the **Open/Closed Principle**.
+
+#### Solution
+The [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/Order.java) context references a [`ShippingStrategy`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/strategy/ShippingStrategy.java) interface and delegates calculation via `shippingStrategy.calculate(this)`. Strategies inspect only the attributes they need:
+
+| Strategy | Real-World Rule | Attribute Inspected |
+| :--- | :--- | :--- |
+| **`StandardShipping`** | Flat $5.00, or **FREE ($0.00)** if order total $\ge \$100.00$. | `order.getItemsTotal()` |
+| **`ExpressShipping`** | Base $15.00 + $2.00/kg surcharge for parcels $> 5.0\text{ kg}$. | `order.getWeight()` |
+| **`InternationalShipping`** | Base $20.00 customs documentation fee + $4.00/kg air freight. | `order.getWeight()` |
+| **`NextDayShipping`** | Flat $25.00 + $5.00 transit insurance for high-value orders $\ge \$200.00$. | `order.getItemsTotal()` |
+
+```text
 [Order Context] ---> [ShippingStrategy] <|--- [StandardShipping]
                                         <|--- [ExpressShipping]
                                         <|--- [InternationalShipping]
                                         <|--- [NextDayShipping]
 ```
 
-### 2. Adapter Pattern (`adapter-pattern`)
-* **Problem**: The checkout service expects a clean `PaymentProcessor.pay(orderId, amount)`. However, the bank service is an external REST API requiring HTTP POST, JSON payloads, merchant account numbers (`accountRef`), and specific currency codes (`USD`).
-* **Solution**: `LegacyBankAdapter` implements `PaymentProcessor` and encapsulates HTTP communication, JSON mapping, and exception translation.
-
+#### Project Layout
+```text
+strategy-pattern/src/
+├── model/
+│   └── Order.java                   <-- Context class
+├── strategy/
+│   ├── ShippingStrategy.java        <-- Strategy interface
+│   ├── StandardShipping.java        <-- Concrete strategy 1
+│   ├── ExpressShipping.java         <-- Concrete strategy 2
+│   ├── InternationalShipping.java   <-- Concrete strategy 3
+│   └── NextDayShipping.java         <-- Concrete strategy 4
+└── Main.java                        <-- Client showing runtime strategy swapping
 ```
-[CheckoutService] ---> [PaymentProcessor] <|--- [LegacyBankAdapter] ---> (HTTP POST) ---> [LegacyBank API]
-```
 
-### 3. Singleton Pattern (`singleton-pattern`)
-* **Problem**: Application configuration must be instantiated exactly once, load environment variables lazily, and remain thread-safe without blocking read access.
-* **Solution**: Double-checked locking with a `volatile` instance variable and private constructor.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-* **Java**: JDK 21 or higher
-* **Maven**: 3.9+ (or included Maven wrapper `./mvnw`)
-
-### Running the Examples
-
-#### Strategy Pattern
+#### How to Run
 ```bash
 cd strategy-pattern
-javac src/*.java
+javac src/model/*.java src/strategy/*.java src/*.java
 java -cp src Main
 ```
 
-#### Singleton Pattern
-```bash
-javac singleton-pattern/src/*.java
-java -cp singleton-pattern/src Main
+---
+
+### 4. Simple Factory Pattern (`simple-factory-pattern`)
+
+#### Problem
+In a pure Strategy Pattern, the client (`Main`) is forced to directly instantiate concrete classes (`new ExpressShipping()`, `new StandardShipping()`), tightly coupling the client to every strategy implementation.
+
+#### Solution
+[`ShippingStrategyFactory`](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/src/factory/ShippingStrategyFactory.java) centralizes object instantiation. The client interacts exclusively with the factory using the type-safe [`ShippingType`](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/src/factory/ShippingType.java) enum, decoupling the client completely from concrete implementations.
+
+```text
+[Client] ---> asks ---> [ShippingStrategyFactory] ---> instantiates ---> [Concrete Strategy]
+   |                                                                             ^
+   +------------------------------ passes to Order ------------------------------+
 ```
 
-#### Adapter Pattern
-1. Start the Legacy Bank service:
-   ```bash
-   cd adapter-pattern/LegacyBank
-   ./mvnw spring-boot:run
-   ```
-2. In another terminal, run the checkout client:
-   ```bash
-   cd adapter-pattern
-   javac PaymentSystem/src/*.java
-   java -cp PaymentSystem/src Main
-   ```
+#### Code in Action
+```java
+// Client never calls 'new ExpressShipping()' directly:
+order.setShippingStrategy(ShippingStrategyFactory.createStrategy(ShippingType.EXPRESS));
+order.setShippingStrategy(ShippingStrategyFactory.createStrategy(ShippingType.NEXT_DAY));
+```
+
+#### Project Layout
+```text
+simple-factory-pattern/src/
+├── model/
+│   └── Order.java                   <-- Context class
+├── strategy/
+│   ├── ShippingStrategy.java        <-- Product interface
+│   ├── StandardShipping.java        <-- Concrete product 1
+│   ├── ExpressShipping.java         <-- Concrete product 2
+│   ├── InternationalShipping.java   <-- Concrete product 3
+│   └── NextDayShipping.java         <-- Concrete product 4
+├── factory/
+│   ├── ShippingType.java            <-- Type selector enum
+│   └── ShippingStrategyFactory.java <-- Simple Factory
+└── Main.java                        <-- Decoupled client
+```
+
+#### How to Run
+```bash
+cd simple-factory-pattern
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/*.java
+java -cp src Main
+```
 
 ---
 
 ## 🗺️ Roadmap
-- [x] **Singleton Pattern** (Thread-safe configuration)
+- [x] **Singleton Pattern** (Thread-safe configuration with double-checked locking)
 - [x] **Adapter Pattern** (Legacy REST banking integration)
 - [x] **Strategy Pattern** (Dynamic shipping cost calculator)
+- [x] **Simple Factory Pattern** (Centralized strategy instantiation)
 - [ ] **Factory Method / Abstract Factory** (Cross-platform document export)
 - [ ] **Decorator Pattern** (Auditing & caching wrapper for repository services)
 - [ ] **Observer Pattern** (Event-driven notification system)
-

@@ -1,11 +1,12 @@
 /**
- * Application configuration.
- * Only one instance exists per JVM. It is created lazily, the first time
- * {@link #getInstance()} is called, and every later call returns the same object.
+ * Application configuration singleton.
+ * <p>
+ * Guarantees only one instance per JVM using lazy initialization
+ * and thread-safe Double-Checked Locking with a {@code volatile} reference.
  */
 public final class AppConfig {
 
-    // volatile: other threads must never see a half-constructed object
+    // volatile: prevents instruction reordering; ensures all threads see fully-initialized object
     private static volatile AppConfig instance;
 
     private final String projectName;
@@ -13,8 +14,12 @@ public final class AppConfig {
     private final String dbUserName;
     private final String dbPassword;
 
-    // private: no other class can call new AppConfig(); only this class creates the instance
+    // private: prevents external instantiation via new AppConfig()
     private AppConfig() {
+        // Guard against reflection instantiation
+        if (instance != null) {
+            throw new IllegalStateException("AppConfig instance already exists. Use getInstance().");
+        }
         this.projectName = readEnv("APP_NAME", "singleton-pattern");
         this.dbUrl = readEnv("DB_URL", "jdbc:h2:mem:testdb");
         this.dbUserName = readEnv("DB_USER", "user");
@@ -22,9 +27,9 @@ public final class AppConfig {
     }
 
     public static AppConfig getInstance() {
-        if (instance == null) {                           // no lock, fast path
-            synchronized (AppConfig.class) {              // one thread at a time
-                if (instance == null) {                   // another thread may have created it
+        if (instance == null) {                           // First check (no locking overhead)
+            synchronized (AppConfig.class) {              // Synchronize block
+                if (instance == null) {                   // Second check (thread-safe creation)
                     instance = new AppConfig();
                 }
             }
@@ -42,3 +47,4 @@ public final class AppConfig {
     public String getDbUserName()  { return dbUserName; }
     public String getDbPassword()  { return dbPassword; }
 }
+

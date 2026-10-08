@@ -1,12 +1,11 @@
+package model;
+
+import strategy.ShippingStrategy;
+import strategy.StandardShipping;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Objects;
 
 /**
- * The Context class in the Strategy Pattern.
- * <p>
- * Holds order details and delegates shipping calculation to the configured
- * {@link ShippingStrategy} without knowing the underlying pricing rules.
+ * Order context holding details and delegating shipping calculation to the active strategy.
  */
 public class Order {
     private final String id;
@@ -16,28 +15,21 @@ public class Order {
 
     public Order(String id, BigDecimal itemsTotal, BigDecimal weight) {
         this.id = id;
-        this.itemsTotal = itemsTotal.setScale(2, RoundingMode.HALF_UP);
+        this.itemsTotal = itemsTotal;
         this.weight = weight;
-        this.shippingStrategy = new StandardShipping();
+        this.shippingStrategy = new StandardShipping(); // Default strategy
     }
 
-    /**
-     * Changes the shipping strategy at runtime.
-     *
-     * @param shippingStrategy the new strategy to use, must not be null
-     */
     public void setShippingStrategy(ShippingStrategy shippingStrategy) {
-        this.shippingStrategy = Objects.requireNonNull(shippingStrategy, "Shipping strategy must not be null");
+        this.shippingStrategy = shippingStrategy;
     }
-
 
     public BigDecimal getShippingCost() {
         return shippingStrategy.calculate(this);
     }
 
-
     public BigDecimal getTotal() {
-        return itemsTotal.add(getShippingCost()).setScale(2, RoundingMode.HALF_UP);
+        return itemsTotal.add(getShippingCost());
     }
 
     public String getId() {

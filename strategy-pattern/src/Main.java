@@ -1,3 +1,7 @@
+import model.Order;
+import strategy.ExpressShipping;
+import strategy.InternationalShipping;
+import strategy.NextDayShipping;
 import java.math.BigDecimal;
 
 public class Main {
@@ -20,3 +24,4 @@ public class Main {
         System.out.println("NextDay Shipping:       " + order.getShippingCost() + " | Total: " + order.getTotal());
     }
 }
+
