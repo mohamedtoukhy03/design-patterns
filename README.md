@@ -10,10 +10,11 @@ Instead of textbook toy examples (like shapes or animals), this repository demon
 
 | Pattern | Category | Description | Real-World Scenario |
 | :--- | :--- | :--- | :--- |
-| **[Singleton Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/singleton-pattern/src/AppConfig.java)** | Creational | Guarantees a class has only one instance and provides a global access point to it. | Thread-safe, lazy-initialized application configuration (`AppConfig`) using double-checked locking, reflection defense, and environment variables. |
-| **[Adapter Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/PaymentSystem/src/LegacyBankAdapter.java)** | Structural | Converts an incompatible interface into an interface clients expect without modifying existing code. | Adapts an external Legacy Banking Spring Boot REST API (`POST /api/transactions`) to an internal checkout `PaymentProcessor` interface. |
-| **[Strategy Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/strategy/ShippingStrategy.java)** | Behavioral | Defines a family of interchangeable algorithms and lets them vary independently from clients. | Dynamic shipping cost calculator (`Order` context swapping between `Standard`, `Express`, `International`, and `NextDay` at runtime). |
-| **[Simple Factory Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/src/factory/ShippingStrategyFactory.java)** | Creational | Centralizes object creation in a dedicated class, shielding clients from concrete implementations. | Decouples order checkout from concrete strategy instantiation via `ShippingStrategyFactory.createStrategy(...)`. |
+| **[Singleton Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/singleton-pattern/README.md)** | Creational | Guarantees a class has only one instance and provides a global access point to it. | Thread-safe, lazy-initialized application configuration (`AppConfig`) using double-checked locking, reflection defense, and environment variables. |
+| **[Adapter Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/adapter-pattern/README.md)** | Structural | Converts an incompatible interface into an interface clients expect without modifying existing code. | Adapts an external Legacy Banking Spring Boot REST API (`POST /api/transactions`) to an internal checkout `PaymentProcessor` interface. |
+| **[Strategy Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/README.md)** | Behavioral | Defines a family of interchangeable algorithms and lets them vary independently from clients. | Dynamic shipping cost calculator (`Order` context swapping between `Standard`, `Express`, `International`, and `NextDay` at runtime). |
+| **[Simple Factory Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/README.md)** | Creational | Centralizes object creation in a dedicated class, shielding clients from concrete implementations. | Decouples order checkout from concrete strategy instantiation via `ShippingStrategyFactory.createStrategy(...)`. |
+| **[Null Object Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/null-object-pattern/README.md)** | Behavioral | Provides a non-functional object as a surrogate for missing or null instances to eliminate null checks. | Returns a zero-cost safe strategy (`ShippingStrategyNullObject`) when null or unselected shipping is passed, avoiding `NullPointerException`. |
 
 ---
 
@@ -187,11 +188,54 @@ java -cp src Main
 
 ---
 
+### 5. Null Object Pattern (`null-object-pattern`)
+
+#### Problem
+If a client passes `null` or an unsupported shipping option, calling `order.getShippingCost()` or `order.getTotal()` causes a runtime `NullPointerException` unless every caller performs defensive `if (strategy != null)` checks throughout the codebase.
+
+#### Solution
+[`ShippingStrategyNullObject`](file:///home/mohamedtoukhy/Java/DesginPattern/null-object-pattern/src/strategy/ShippingStrategyNullObject.java) implements [`ShippingStrategy`](file:///home/mohamedtoukhy/Java/DesginPattern/null-object-pattern/src/strategy/ShippingStrategy.java) providing neutral, do-nothing behavior (returns `0.00` shipping fee). When `ShippingStrategyFactory.createStrategy(null)` is called, it returns this null object instead of returning `null`, guaranteeing null safety across the entire calculation chain.
+
+```text
+[Client] ---> asks for null strategy ---> [ShippingStrategyFactory] ---> returns [ShippingStrategyNullObject]
+                                                                                          |
+                                                                             calculate() returns $0.00
+                                                                             (No NullPointerException!)
+```
+
+#### Project Layout
+```text
+null-object-pattern/src/
+├── model/
+│   └── Order.java                   <-- Context class
+├── strategy/
+│   ├── ShippingStrategy.java        <-- Strategy interface
+│   ├── StandardShipping.java        <-- Concrete strategy 1
+│   ├── ExpressShipping.java         <-- Concrete strategy 2
+│   ├── InternationalShipping.java   <-- Concrete strategy 3
+│   ├── NextDayShipping.java         <-- Concrete strategy 4
+│   └── ShippingStrategyNullObject.java <-- Null Object implementation
+├── factory/
+│   ├── ShippingType.java            <-- Type selector enum
+│   └── ShippingStrategyFactory.java <-- Returns Null Object on null input
+└── Main.java                        <-- Client demo verifying safe fallback
+```
+
+#### How to Run
+```bash
+cd null-object-pattern
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/*.java
+java -cp src Main
+```
+
+---
+
 ## 🗺️ Roadmap
 - [x] **Singleton Pattern** (Thread-safe configuration with double-checked locking)
 - [x] **Adapter Pattern** (Legacy REST banking integration)
 - [x] **Strategy Pattern** (Dynamic shipping cost calculator)
 - [x] **Simple Factory Pattern** (Centralized strategy instantiation)
+- [x] **Null Object Pattern** (Zero-cost safe fallback strategy)
 - [ ] **Factory Method / Abstract Factory** (Cross-platform document export)
 - [ ] **Decorator Pattern** (Auditing & caching wrapper for repository services)
 - [ ] **Observer Pattern** (Event-driven notification system)
