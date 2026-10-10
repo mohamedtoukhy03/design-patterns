@@ -16,6 +16,7 @@ Instead of textbook toy examples (like shapes or animals), this repository demon
 | **[Simple Factory Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/README.md)** | Creational | Centralizes object creation in a dedicated class, shielding clients from concrete implementations. | Decouples order checkout from concrete strategy instantiation via `ShippingStrategyFactory.createStrategy(...)`. |
 | **[Null Object Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/null-object-pattern/README.md)** | Behavioral | Provides a non-functional object as a surrogate for missing or null instances to eliminate null checks. | Returns a zero-cost safe strategy (`ShippingStrategyNullObject`) when null or unselected shipping is passed, avoiding `NullPointerException`. |
 | **[Template Method Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/README.md)** | Behavioral | Defines the skeleton of an algorithm in a base method, deferring specific steps to subclasses without altering structure. | Abstract `CheckoutService.processOrder(Order)` orchestrates validation, payment, and dispatch across `Online` and `InStore` channels. |
+| **[Factory Method Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/factory-method-pattern/README.md)** | Creational | Defines an interface for creating an object, but lets subclasses decide which class to instantiate. | `PaymentProcessorFactory` and `CheckoutService` delegate payment processor creation to polymorphic subclasses (`CreditCard`, `PayPal`, `Cash`). |
 
 ---
 
@@ -240,7 +241,7 @@ java -cp src Main
 Processing customer orders involves a fixed sequence of steps (validate order, calculate total, process payment, dispatch goods, and print receipt). However, different sales channels implement specific steps differently (e.g. online orders charge credit cards and ship via courier, while in-store orders take cash/POS and hand goods across the counter). Copying the algorithm across classes creates code duplication.
 
 #### Solution
-[`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/CheckoutService.java) defines a `final` template method `processOrder(Order)`. Common invariant steps are defined once in the base class, while specific steps (`processPayment`, `dispatchOrder`) are deferred as abstract methods to concrete subclasses (`OnlineCheckoutService`, `InStoreCheckoutService`).
+[`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/checkout/CheckoutService.java) defines a `final` template method `processOrder(Order)`. Common invariant steps are defined once in the base class, while specific steps (`processPayment`, `dispatchOrder`) are deferred as abstract methods to concrete subclasses (`OnlineCheckoutService`, `InStoreCheckoutService`).
 
 ```text
                +--------------------------------------+
@@ -264,11 +265,13 @@ template-pattern/src/
 ├── model/
 │   ├── Product.java                 <-- Item model (name, price)
 │   └── Order.java                   <-- Context class holding items
-├── service/
+├── payment/
+│   └── PaymentProcessor.java        <-- Payment interface (matching Adapter Pattern)
+├── checkout/
 │   ├── CheckoutService.java         <-- Abstract template defining workflow
 │   ├── OnlineCheckoutService.java   <-- Online channel implementation
-│   ├── InStoreCheckoutService.java  <-- In-store POS implementation
-│   └── PaymentProcessor.java        <-- Payment interface (matching Adapter Pattern)
+│   └── InStoreCheckoutService.java  <-- In-store POS implementation
+├── factory/                         <-- Strategy factory
 ├── strategy/                        <-- Reused shipping strategies
 └── Main.java                        <-- Multi-channel checkout demo
 ```
@@ -276,7 +279,64 @@ template-pattern/src/
 #### How to Run
 ```bash
 cd template-pattern
-javac src/model/*.java src/strategy/*.java src/factory/*.java src/service/*.java src/*.java
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/payment/*.java src/checkout/*.java src/*.java
+java -cp src Main
+```
+
+---
+
+### 7. Factory Method Pattern (`factory-method-pattern`)
+
+#### Problem
+In a Simple Factory, a single class contains conditional `switch` or `if/else` checks to instantiate objects. Whenever a new payment provider (e.g. Apple Pay, Crypto) is added, that factory class must be modified, violating the **Open/Closed Principle (OCP)**.
+
+#### Solution
+The **Factory Method Pattern** replaces centralized `switch` statements with inheritance and polymorphism. The abstract creator defines a factory method (`createProcessor()`), deferring instantiation to specialized subclasses (`CreditCardPaymentFactory`, `PayPalPaymentFactory`, `CashPaymentFactory`, or within `CheckoutService` subclasses).
+
+```text
+       [PaymentProcessor]  <--- Interface (Product)
+               ^
+     +---------+---------+
+     |                   |
+[CreditCardProcessor] [PayPalProcessor] [CashProcessor]
+     ^                   ^
+     | creates           | creates
+[CreditCardFactory]  [PayPalFactory]    [CashFactory]
+     \                   |             /
+      +------------------+------------+
+                         |
+           [PaymentProcessorFactory] <--- Abstract Creator
+                         |
+           + createProcessor(): PaymentProcessor (FACTORY METHOD)
+```
+
+#### Project Layout
+```text
+factory-method-pattern/src/
+├── payment/
+│   ├── PaymentProcessor.java        <-- Product interface
+│   ├── CreditCardPaymentProcessor.java
+│   ├── PayPalPaymentProcessor.java
+│   ├── CashPaymentProcessor.java
+│   ├── PaymentProcessorFactory.java <-- Base creator declaring factory method
+│   ├── CreditCardPaymentFactory.java
+│   ├── PayPalPaymentFactory.java
+│   └── CashPaymentFactory.java
+├── checkout/
+│   ├── CheckoutService.java         <-- Pipeline defining createPaymentProcessor()
+│   ├── OnlineCheckoutService.java   <-- Subclass creates CreditCard processor
+│   ├── PayPalCheckoutService.java   <-- Subclass creates PayPal processor
+│   └── InStoreCheckoutService.java  <-- Subclass creates Cash processor
+├── factory/                         <-- Strategy factory
+├── model/                           <-- Order and Product models
+├── strategy/                        <-- Reused shipping strategies
+└── Main.java                        <-- Client demo showing polymorphic creation
+```
+
+#### How to Run
+```bash
+cd factory-method-pattern
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/payment/*.java src/checkout/*.java src/*.java
 java -cp src Main
 ```
 
@@ -289,6 +349,7 @@ java -cp src Main
 - [x] **Simple Factory Pattern** (Centralized strategy instantiation)
 - [x] **Null Object Pattern** (Zero-cost safe fallback strategy)
 - [x] **Template Method Pattern** (Multi-channel checkout processing pipeline)
-- [ ] **Factory Method / Abstract Factory** (Cross-platform document export)
+- [x] **Factory Method Pattern** (Polymorphic payment processor creation)
+- [ ] **Abstract Factory Pattern** (Cross-platform family suites)
 - [ ] **Decorator Pattern** (Auditing & caching wrapper for repository services)
 - [ ] **Observer Pattern** (Event-driven notification system)

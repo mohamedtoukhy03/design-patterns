@@ -1,6 +1,7 @@
-package service;
+package checkout;
 
 import model.Order;
+import payment.PaymentProcessor;
 
 public class OnlineCheckoutService extends CheckoutService {
 

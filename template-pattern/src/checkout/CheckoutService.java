@@ -1,4 +1,4 @@
-package service;
+package checkout;
 
 import model.Order;
 

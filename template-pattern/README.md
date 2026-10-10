@@ -25,7 +25,7 @@ When building multi-channel applications (such as an e-commerce platform process
 
 ## 2. The Code Example (Order Checkout Pipeline)
 
-In this project, [`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/CheckoutService.java) defines the immutable template method `processOrder(Order)`, while subclasses customize payment and dispatch steps.
+In this project, [`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/checkout/CheckoutService.java) defines the immutable template method `processOrder(Order)`, while subclasses customize payment and dispatch steps.
 
 ```text
                +--------------------------------------+
@@ -52,7 +52,7 @@ In this project, [`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPatte
 
 ### Components:
 
-1. **Abstract Base ([`CheckoutService.java`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/CheckoutService.java))**:
+1. **Abstract Base ([`CheckoutService.java`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/checkout/CheckoutService.java))**:
    The `processOrder` method is declared `final` so subclasses cannot alter the sequence of execution:
    ```java
    public abstract class CheckoutService {
@@ -84,11 +84,11 @@ In this project, [`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPatte
    }
    ```
 
-2. **Concrete Subclasses ([`service/`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/))**:
-   * **`OnlineCheckoutService`**: Overrides `processPayment` by delegating to a [`PaymentProcessor`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/PaymentProcessor.java) interface (the same target contract used in the Adapter Pattern!) and `dispatchOrder` (courier shipping).
+2. **Concrete Subclasses ([`checkout/`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/checkout/))**:
+   * **`OnlineCheckoutService`**: Overrides `processPayment` by delegating to a [`PaymentProcessor`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/payment/PaymentProcessor.java) interface (the same target contract used in the Adapter Pattern!) and `dispatchOrder` (courier shipping).
    * **`InStoreCheckoutService`**: Overrides `processPayment` (POS register) and `dispatchOrder` (counter handoff).
 
-3. **Payment Target Contract ([`PaymentProcessor.java`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/PaymentProcessor.java))**:
+3. **Payment Target Contract ([`PaymentProcessor.java`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/payment/PaymentProcessor.java))**:
    Matches the contract from the Adapter Pattern (`pay(orderId, amount)`), demonstrating how design patterns collaborate seamlessly without tight coupling.
 
 4. **Domain Models ([`model/`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/model/))**:
@@ -147,7 +147,7 @@ public class Main {
 ### How to Compile & Run
 ```bash
 cd template-pattern
-javac src/model/*.java src/strategy/*.java src/factory/*.java src/service/*.java src/*.java
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/payment/*.java src/checkout/*.java src/*.java
 java -cp src Main
 ```
 

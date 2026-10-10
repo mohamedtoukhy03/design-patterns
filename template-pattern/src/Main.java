@@ -2,9 +2,9 @@ import factory.ShippingStrategyFactory;
 import factory.ShippingType;
 import model.Order;
 import model.Product;
-import service.CheckoutService;
-import service.InStoreCheckoutService;
-import service.OnlineCheckoutService;
+import checkout.CheckoutService;
+import checkout.InStoreCheckoutService;
+import checkout.OnlineCheckoutService;
 import java.math.BigDecimal;
 
 public class Main {
