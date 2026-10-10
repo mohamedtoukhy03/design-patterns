@@ -68,36 +68,45 @@ In this project, the calculation logic is extracted into interchangeable strateg
 2. **Concrete Strategies ([`strategy/`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/strategy/))**:
    Each implements a distinct pricing rule:
    * **`StandardShipping`**: Base flat fee of `$5.00`, but **FREE (`$0.00`)** if items total $\ge \$100.00$.
-   * **`ExpressShipping`**: Base fee of `$15.00` + `$2.00`/kg surcharge for parcels over $5\text{ kg}$.
-   * **`InternationalShipping`**: Base fee of `$20.00` + `$4.00`/kg air freight rate.
-   * **`NextDayShipping`**: Base fee of `$25.00` + `$5.00` transit insurance for orders $\ge \$200.00$.
+   * **`ExpressShipping`**: Fast delivery: Flat fee of `$15.00`.
+   * **`InternationalShipping`**: Global delivery: Flat fee of `$30.00`.
+   * **`NextDayShipping`**: Priority overnight: Flat fee of `$25.00`.
 
-3. **Context Class ([`Order.java`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/Order.java))**:
-   Maintains a reference to a `ShippingStrategy` and delegates the calculation to it:
+3. **Domain Models ([`model/`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/))**:
+   * **[`Product.java`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/Product.java)**: Represents an item with `name` and `price`.
+   * **[`Order.java`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/Order.java)**: Context class holding a list of products and delegating shipping cost calculation:
    ```java
    public class Order {
        private final String id;
-       private final BigDecimal itemsTotal;
-       private final BigDecimal weight;
-       private ShippingStrategy shippingStrategy;
+       private final List<Product> products = new ArrayList<>();
+       private ShippingStrategy shippingStrategy = new StandardShipping();
 
-       public Order(String id, BigDecimal itemsTotal, BigDecimal weight) {
+       public Order(String id) {
            this.id = id;
-           this.itemsTotal = itemsTotal;
-           this.weight = weight;
-           this.shippingStrategy = new StandardShipping(); // Default strategy
+       }
+
+       public void addProduct(Product product) {
+           products.add(product);
+       }
+
+       public BigDecimal getItemsTotal() {
+           BigDecimal total = BigDecimal.ZERO;
+           for (Product p : products) {
+               total = total.add(p.getPrice());
+           }
+           return total;
+       }
+
+       public BigDecimal getShippingCost() {
+           return shippingStrategy.calculate(this);
+       }
+
+       public BigDecimal getTotal() {
+           return getItemsTotal().add(getShippingCost());
        }
 
        public void setShippingStrategy(ShippingStrategy shippingStrategy) {
            this.shippingStrategy = shippingStrategy;
-       }
-
-       public BigDecimal getShippingCost() {
-           return shippingStrategy.calculate(this); // Delegation
-       }
-
-       public BigDecimal getTotal() {
-           return itemsTotal.add(getShippingCost());
        }
    }
    ```
@@ -109,9 +118,9 @@ In this project, the calculation logic is extracted into interchangeable strateg
 | Strategy Role | Class in Project | Explanation |
 | :--- | :--- | :--- |
 | **Strategy Interface** | `ShippingStrategy` | The contract defining the algorithm execution method `calculate(Order)`. |
-| **Concrete Strategies** | `StandardShipping`, `ExpressShipping`, `InternationalShipping`, `NextDayShipping` | Separate encapsulated algorithm classes. Each implements its own business rules. |
-| **Context** | `Order` | Maintains state (`itemsTotal`, `weight`) and invokes the active strategy without knowing the formula. |
-| **Dynamic Swapping** | `order.setShippingStrategy(...)` | Enables changing shipping algorithms on the fly without reconstructing the `Order`. |
+| **Concrete Strategies** | `StandardShipping`, `ExpressShipping`, `InternationalShipping`, `NextDayShipping` | Encapsulated algorithm classes with distinct commercial pricing rules. |
+| **Context** | `Order` | Maintains state (`products`, `getItemsTotal()`) and invokes the active strategy. |
+| **Dynamic Swapping** | `order.setShippingStrategy(...)` | Enables changing shipping algorithms at runtime without changing order data. |
 
 ---
 
@@ -121,7 +130,9 @@ In this project, the calculation logic is extracted into interchangeable strateg
 ```java
 public class Main {
     public static void main(String[] args) {
-        Order order = new Order("ORD-1", new BigDecimal("80.00"), new BigDecimal("2.5"));
+        Order order = new Order("ORD-1");
+        order.addProduct(new Product("Keyboard", new BigDecimal("50.00")));
+        order.addProduct(new Product("Mouse", new BigDecimal("30.00")));
 
         // 1. Default strategy: Standard Shipping ($5.00)
         System.out.println("Standard:      " + order.getShippingCost() + " | Total: " + order.getTotal());
@@ -130,7 +141,7 @@ public class Main {
         order.setShippingStrategy(new ExpressShipping());
         System.out.println("Express:       " + order.getShippingCost() + " | Total: " + order.getTotal());
 
-        // 3. Switch to International ($20.00 base + 4.00 * 2.5kg = $30.00)
+        // 3. Switch to International ($30.00)
         order.setShippingStrategy(new InternationalShipping());
         System.out.println("International: " + order.getShippingCost() + " | Total: " + order.getTotal());
 

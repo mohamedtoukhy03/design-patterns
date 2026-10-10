@@ -96,7 +96,9 @@ The Simple Factory encapsulates strategy creation behind [`ShippingStrategyFacto
 ```java
 public class Main {
     public static void main(String[] args) {
-        Order order = new Order("ORD-1", new BigDecimal("80.00"), new BigDecimal("2.5"));
+        Order order = new Order("ORD-1");
+        order.addProduct(new Product("Keyboard", new BigDecimal("50.00")));
+        order.addProduct(new Product("Mouse", new BigDecimal("30.00")));
 
         // 1. Default (Standard Shipping: $5.00)
         System.out.println("Default:      " + order.getShippingCost() + " | Total: " + order.getTotal());

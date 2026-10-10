@@ -3,25 +3,28 @@ package model;
 import strategy.ShippingStrategy;
 import strategy.StandardShipping;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Order context holding details and delegating shipping calculation to the active strategy.
- */
 public class Order {
     private final String id;
-    private final BigDecimal itemsTotal;
-    private final BigDecimal weight;
-    private ShippingStrategy shippingStrategy;
+    private final List<Product> products = new ArrayList<>();
+    private ShippingStrategy shippingStrategy = new StandardShipping();
 
-    public Order(String id, BigDecimal itemsTotal, BigDecimal weight) {
+    public Order(String id) {
         this.id = id;
-        this.itemsTotal = itemsTotal;
-        this.weight = weight;
-        this.shippingStrategy = new StandardShipping(); // Default strategy
     }
 
-    public void setShippingStrategy(ShippingStrategy shippingStrategy) {
-        this.shippingStrategy = shippingStrategy;
+    public void addProduct(Product product) {
+        products.add(product);
+    }
+
+    public BigDecimal getItemsTotal() {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Product p : products) {
+            total = total.add(p.getPrice());
+        }
+        return total;
     }
 
     public BigDecimal getShippingCost() {
@@ -29,19 +32,19 @@ public class Order {
     }
 
     public BigDecimal getTotal() {
-        return itemsTotal.add(getShippingCost());
+        return getItemsTotal().add(getShippingCost());
+    }
+
+    public void setShippingStrategy(ShippingStrategy shippingStrategy) {
+        this.shippingStrategy = shippingStrategy;
     }
 
     public String getId() {
         return id;
     }
 
-    public BigDecimal getItemsTotal() {
-        return itemsTotal;
-    }
-
-    public BigDecimal getWeight() {
-        return weight;
+    public List<Product> getProducts() {
+        return products;
     }
 
     public ShippingStrategy getShippingStrategy() {

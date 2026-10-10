@@ -15,6 +15,7 @@ Instead of textbook toy examples (like shapes or animals), this repository demon
 | **[Strategy Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/README.md)** | Behavioral | Defines a family of interchangeable algorithms and lets them vary independently from clients. | Dynamic shipping cost calculator (`Order` context swapping between `Standard`, `Express`, `International`, and `NextDay` at runtime). |
 | **[Simple Factory Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/simple-factory-pattern/README.md)** | Creational | Centralizes object creation in a dedicated class, shielding clients from concrete implementations. | Decouples order checkout from concrete strategy instantiation via `ShippingStrategyFactory.createStrategy(...)`. |
 | **[Null Object Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/null-object-pattern/README.md)** | Behavioral | Provides a non-functional object as a surrogate for missing or null instances to eliminate null checks. | Returns a zero-cost safe strategy (`ShippingStrategyNullObject`) when null or unselected shipping is passed, avoiding `NullPointerException`. |
+| **[Template Method Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/README.md)** | Behavioral | Defines the skeleton of an algorithm in a base method, deferring specific steps to subclasses without altering structure. | Abstract `CheckoutService.processOrder(Order)` orchestrates validation, payment, and dispatch across `Online` and `InStore` channels. |
 
 ---
 
@@ -104,12 +105,12 @@ An e-commerce [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-p
 #### Solution
 The [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/model/Order.java) context references a [`ShippingStrategy`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src/strategy/ShippingStrategy.java) interface and delegates calculation via `shippingStrategy.calculate(this)`. Strategies inspect only the attributes they need:
 
-| Strategy | Real-World Rule | Attribute Inspected |
+| Strategy | Real-World Rule | Method Inspected |
 | :--- | :--- | :--- |
 | **`StandardShipping`** | Flat $5.00, or **FREE ($0.00)** if order total $\ge \$100.00$. | `order.getItemsTotal()` |
-| **`ExpressShipping`** | Base $15.00 + $2.00/kg surcharge for parcels $> 5.0\text{ kg}$. | `order.getWeight()` |
-| **`InternationalShipping`** | Base $20.00 customs documentation fee + $4.00/kg air freight. | `order.getWeight()` |
-| **`NextDayShipping`** | Flat $25.00 + $5.00 transit insurance for high-value orders $\ge \$200.00$. | `order.getItemsTotal()` |
+| **`ExpressShipping`** | Fast courier delivery: Flat $15.00. | Tier rate |
+| **`InternationalShipping`** | Global cross-border delivery: Flat $30.00. | Tier rate |
+| **`NextDayShipping`** | Priority overnight delivery: Flat $25.00. | Tier rate |
 
 ```text
 [Order Context] ---> [ShippingStrategy] <|--- [StandardShipping]
@@ -122,7 +123,8 @@ The [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/strategy-pattern/src
 ```text
 strategy-pattern/src/
 ├── model/
-│   └── Order.java                   <-- Context class
+│   ├── Product.java                 <-- Purchased item (name, price)
+│   └── Order.java                   <-- Context class holding products
 ├── strategy/
 │   ├── ShippingStrategy.java        <-- Strategy interface
 │   ├── StandardShipping.java        <-- Concrete strategy 1
@@ -162,10 +164,11 @@ order.setShippingStrategy(ShippingStrategyFactory.createStrategy(ShippingType.EX
 order.setShippingStrategy(ShippingStrategyFactory.createStrategy(ShippingType.NEXT_DAY));
 ```
 
-#### Project Layout
+##### Project Layout
 ```text
 simple-factory-pattern/src/
 ├── model/
+│   ├── Product.java                 <-- Purchased item (name, price)
 │   └── Order.java                   <-- Context class
 ├── strategy/
 │   ├── ShippingStrategy.java        <-- Product interface
@@ -207,6 +210,7 @@ If a client passes `null` or an unsupported shipping option, calling `order.getS
 ```text
 null-object-pattern/src/
 ├── model/
+│   ├── Product.java                 <-- Purchased item (name, price)
 │   └── Order.java                   <-- Context class
 ├── strategy/
 │   ├── ShippingStrategy.java        <-- Strategy interface
@@ -230,12 +234,61 @@ java -cp src Main
 
 ---
 
+### 6. Template Method Pattern (`template-pattern`)
+
+#### Problem
+Processing customer orders involves a fixed sequence of steps (validate order, calculate total, process payment, dispatch goods, and print receipt). However, different sales channels implement specific steps differently (e.g. online orders charge credit cards and ship via courier, while in-store orders take cash/POS and hand goods across the counter). Copying the algorithm across classes creates code duplication.
+
+#### Solution
+[`CheckoutService`](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/src/service/CheckoutService.java) defines a `final` template method `processOrder(Order)`. Common invariant steps are defined once in the base class, while specific steps (`processPayment`, `dispatchOrder`) are deferred as abstract methods to concrete subclasses (`OnlineCheckoutService`, `InStoreCheckoutService`).
+
+```text
+               +--------------------------------------+
+               |      <<abstract>> CheckoutService    |
+               +--------------------------------------+
+               | + processOrder(Order): void  (final) |-----> Invariant Workflow
+               | # processPayment(Order): void (abs)  |
+               | # dispatchOrder(Order): void  (abs)  |
+               +--------------------------------------+
+                                   ^
+                  +----------------+----------------+
+                  |                                 |
++------------------------------------+   +------------------------------------+
+|       OnlineCheckoutService        |   |       InStoreCheckoutService       |
++------------------------------------+   +------------------------------------+
+```
+
+#### Project Layout
+```text
+template-pattern/src/
+├── model/
+│   ├── Product.java                 <-- Item model (name, price)
+│   └── Order.java                   <-- Context class holding items
+├── service/
+│   ├── CheckoutService.java         <-- Abstract template defining workflow
+│   ├── OnlineCheckoutService.java   <-- Online channel implementation
+│   ├── InStoreCheckoutService.java  <-- In-store POS implementation
+│   └── PaymentProcessor.java        <-- Payment interface (matching Adapter Pattern)
+├── strategy/                        <-- Reused shipping strategies
+└── Main.java                        <-- Multi-channel checkout demo
+```
+
+#### How to Run
+```bash
+cd template-pattern
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/service/*.java src/*.java
+java -cp src Main
+```
+
+---
+
 ## 🗺️ Roadmap
 - [x] **Singleton Pattern** (Thread-safe configuration with double-checked locking)
 - [x] **Adapter Pattern** (Legacy REST banking integration)
 - [x] **Strategy Pattern** (Dynamic shipping cost calculator)
 - [x] **Simple Factory Pattern** (Centralized strategy instantiation)
 - [x] **Null Object Pattern** (Zero-cost safe fallback strategy)
+- [x] **Template Method Pattern** (Multi-channel checkout processing pipeline)
 - [ ] **Factory Method / Abstract Factory** (Cross-platform document export)
 - [ ] **Decorator Pattern** (Auditing & caching wrapper for repository services)
 - [ ] **Observer Pattern** (Event-driven notification system)

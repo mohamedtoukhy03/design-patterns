@@ -1,11 +1,14 @@
 import factory.ShippingStrategyFactory;
 import factory.ShippingType;
 import model.Order;
+import model.Product;
 import java.math.BigDecimal;
 
 public class Main {
     public static void main(String[] args) {
-        Order order = new Order("ORD-1", new BigDecimal("80.00"), new BigDecimal("2.5"));
+        Order order = new Order("ORD-1");
+        order.addProduct(new Product("Keyboard", new BigDecimal("50.00")));
+        order.addProduct(new Product("Mouse", new BigDecimal("30.00")));
 
         // 1. Normal Strategy via Factory: Express ($15.00)
         order.setShippingStrategy(ShippingStrategyFactory.createStrategy(ShippingType.EXPRESS));
