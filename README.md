@@ -17,6 +17,7 @@ Instead of textbook toy examples (like shapes or animals), this repository demon
 | **[Null Object Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/null-object-pattern/README.md)** | Behavioral | Provides a non-functional object as a surrogate for missing or null instances to eliminate null checks. | Returns a zero-cost safe strategy (`ShippingStrategyNullObject`) when null or unselected shipping is passed, avoiding `NullPointerException`. |
 | **[Template Method Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/template-pattern/README.md)** | Behavioral | Defines the skeleton of an algorithm in a base method, deferring specific steps to subclasses without altering structure. | Abstract `CheckoutService.processOrder(Order)` orchestrates validation, payment, and dispatch across `Online` and `InStore` channels. |
 | **[Factory Method Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/factory-method-pattern/README.md)** | Creational | Defines an interface for creating an object, but lets subclasses decide which class to instantiate. | `PaymentProcessorFactory` and `CheckoutService` delegate payment processor creation to polymorphic subclasses (`CreditCard`, `PayPal`, `Cash`). |
+| **[State Pattern](file:///home/mohamedtoukhy/Java/DesginPattern/state-pattern/README.md)** | Behavioral | Allows an object to alter its behavior when its internal state changes, encapsulating state-specific rules. | Order lifecycle state machine (`PENDING` → `PAID` → `SHIPPED` → `DELIVERED`, or `CANCELLED`) enforcing business rules cleanly without nested `if/else` checks. |
 
 ---
 
@@ -342,6 +343,64 @@ java -cp src Main
 
 ---
 
+### 8. State Pattern (`state-pattern`)
+
+#### Problem
+An order's behavior and allowable operations (`pay`, `ship`, `deliver`, `cancel`) depend strictly on its current phase. Using conditional ladders (`if/else` or `switch`) spreads state logic across methods, introduces brittle checks, and violates the Open/Closed Principle when adding new states.
+
+#### Solution
+The **State Pattern** encapsulates each lifecycle phase into dedicated classes implementing [`OrderState`](file:///home/mohamedtoukhy/Java/DesginPattern/state-pattern/src/state/OrderState.java). The [`Order`](file:///home/mohamedtoukhy/Java/DesginPattern/state-pattern/src/model/Order.java) context delegates operations to its current state object, which enforces legal transitions and rejects invalid actions.
+
+```text
+               +------------------------------------+
+               |      <<interface>> OrderState      |
+               +------------------------------------+
+               | + pay(Order): void                 |
+               | + ship(Order): void                |
+               | + deliver(Order): void             |
+               | + cancel(Order): void              |
+               | + getName(): String                |
+               +------------------------------------+
+                                  ^
+         +-------------+----------+----------+-------------+
+         |             |                     |             |
++----------------+ +---------------+ +---------------+ +------------------+ +------------------+
+| PendingOrder   | | PaidOrder     | | ShippedOrder  | | DeliveredOrder   | | CancelledOrder   |
+| State          | | State         | | State         | | State            | | State            |
++----------------+ +---------------+ +---------------+ +------------------+ +------------------+
+| pay() -> PAID  | | ship() -> SHIP| | deliver()->DLV| | (Terminal State) | | (Terminal State) |
+| cancel()->CNC  | | cancel()->CNC | |               | | Rejects all      | | Rejects all      |
++----------------+ +---------------+ +---------------+ +------------------+ +------------------+
+```
+
+#### Project Layout
+```text
+state-pattern/src/
+├── state/
+│   ├── OrderState.java              <-- State interface defining actions
+│   ├── PendingOrderState.java       <-- Initial state (permits pay, cancel)
+│   ├── PaidOrderState.java          <-- Payment received (permits ship, cancel)
+│   ├── ShippedOrderState.java       <-- Package in transit (permits deliver)
+│   ├── DeliveredOrderState.java     <-- Completed order (terminal state)
+│   └── CancelledOrderState.java     <-- Aborted order (terminal state)
+├── model/
+│   ├── Order.java                   <-- Context class delegating to current state
+│   └── Product.java                 <-- Product model
+├── checkout/                        <-- Multi-channel checkout pipeline
+├── payment/                         <-- Polymorphic payment processors & factories
+├── strategy/                        <-- Reused shipping strategies
+└── Main.java                        <-- Demonstrates transitions & validation
+```
+
+#### How to Run
+```bash
+cd state-pattern
+javac src/model/*.java src/strategy/*.java src/factory/*.java src/payment/*.java src/checkout/*.java src/state/*.java src/*.java
+java -cp src Main
+```
+
+---
+
 ## 🗺️ Roadmap
 - [x] **Singleton Pattern** (Thread-safe configuration with double-checked locking)
 - [x] **Adapter Pattern** (Legacy REST banking integration)
@@ -350,6 +409,7 @@ java -cp src Main
 - [x] **Null Object Pattern** (Zero-cost safe fallback strategy)
 - [x] **Template Method Pattern** (Multi-channel checkout processing pipeline)
 - [x] **Factory Method Pattern** (Polymorphic payment processor creation)
+- [x] **State Pattern** (Order lifecycle state machine)
 - [ ] **Abstract Factory Pattern** (Cross-platform family suites)
 - [ ] **Decorator Pattern** (Auditing & caching wrapper for repository services)
 - [ ] **Observer Pattern** (Event-driven notification system)
